@@ -120,6 +120,24 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Launch the interactive Streamlit review dashboard",
     )
+    parser.add_argument(
+        "--watch",
+        action="store_true",
+        default=False,
+        help="Run continuous automated discovery in the background at periodic intervals",
+    )
+    parser.add_argument(
+        "--interval",
+        type=int,
+        default=60,
+        help="Interval in minutes between discovery runs in --watch mode (default: 60)",
+    )
+    parser.add_argument(
+        "--telegram-bot",
+        action="store_true",
+        default=False,
+        help="Run the interactive Telegram bot polling listener for mobile approvals",
+    )
     return parser.parse_args()
 
 
@@ -226,6 +244,46 @@ def main() -> None:
     if args.dashboard:
         logger.info("Launching Streamlit dashboard...")
         subprocess.run([sys.executable, "-m", "streamlit", "run", "dashboard.py"])
+        return
+
+    if args.telegram_bot:
+        logger.info("🤖 Starting Telegram Interactive Bot Listener...")
+        from core.telegram_bot import create_telegram_application
+        app = create_telegram_application()
+        if app:
+            logger.info("✓ Telegram Bot active! Listening for commands (/status, /pending) and [Approve & Apply] taps...")
+            app.run_polling()
+        else:
+            logger.error("Could not initialize Telegram bot. Ensure TELEGRAM_BOT_TOKEN is set in .env")
+        return
+
+    if args.watch:
+        logger.info("🕒 Continuous Watch Mode activated (Interval: {} minutes).", args.interval)
+
+        async def _run_watch():
+            from core.telegram_bot import create_telegram_application
+            app = create_telegram_application()
+
+            async def _discovery_loop():
+                while True:
+                    try:
+                        logger.info("═══ Starting Discovery Cycle: {} ═══", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                        await run_discovery_pipeline(args)
+                    except Exception as exc:
+                        logger.error("Error during watch discovery cycle: {}", exc)
+                    logger.info("Cycle finished. Next discovery cycle in {} minutes.", args.interval)
+                    await asyncio.sleep(args.interval * 60)
+
+            if app and config.TELEGRAM_BOT_TOKEN:
+                async with app:
+                    await app.start()
+                    await app.updater.start_polling()
+                    logger.info("✓ Interactive Telegram Bot running concurrently in watch mode.")
+                    await _discovery_loop()
+            else:
+                await _discovery_loop()
+
+        asyncio.run(_run_watch())
         return
 
     asyncio.run(run_discovery_pipeline(args))

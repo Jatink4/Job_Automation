@@ -310,6 +310,13 @@ def get_jobs_by_status(status: Optional[str] = None, profile_id: Optional[str] =
         return [dict(r) for r in rows]
 
 
+def get_job_by_id(job_db_id: int) -> Optional[dict[str, Any]]:
+    """Fetch a single job record by SQLite row id."""
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM jobs WHERE id = ?", (job_db_id,)).fetchone()
+        return dict(row) if row else None
+
+
 def get_pending_review_jobs(profile_id: Optional[str] = None) -> list[dict[str, Any]]:
     return get_jobs_by_status(status="review_pending", profile_id=profile_id)
 

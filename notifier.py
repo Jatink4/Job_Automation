@@ -41,6 +41,13 @@ async def send_telegram_results(
             parse_mode="HTML",
         )
         logger.info("✓ Telegram notification sent with {} top jobs", len(top_jobs))
+
+        # Send interactive action cards for top review-pending matches
+        from core.telegram_bot import send_interactive_card
+        for job in top_jobs[:5]:
+            await send_interactive_card(job, bot=bot)
+            await asyncio.sleep(0.3)
+
     except Exception as exc:
         logger.error("Failed to send Telegram message: {}", exc)
 

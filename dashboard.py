@@ -143,6 +143,57 @@ with st.sidebar:
     )
 
     st.markdown("---")
+    st.subheader("⚡ Live Job Discovery")
+    search_sites = st.selectbox("Discovery Platform:", ["all", "linkedin", "naukri"], index=0)
+    search_limit = st.slider("Listings per profile:", min_value=5, max_value=30, value=15)
+
+    if st.button("🚀 Search for Jobs Now", type="primary", use_container_width=True):
+        import asyncio
+        from core.discovery import JobDiscoveryEngine
+        from core.browser import BrowserManager
+        from notifier import send_telegram_results
+
+        with st.spinner("Connecting to job platforms and evaluating matches..."):
+            async def _run_search():
+                engine = JobDiscoveryEngine(dry_run=True)
+                target = profiles if selected_profile_id == "all" else [profile_map[selected_profile_id]]
+                matched_all = []
+                rejected_all = []
+                async with BrowserManager() as browser:
+                    for prof in target:
+                        res = await engine.run_discovery_for_profile(
+                            profile=prof,
+                            resume=resume_data,
+                            browser_manager=browser,
+                            limit_per_search=search_limit,
+                            sites=search_sites,
+                        )
+                        matched_all.extend([r for r in res if r.get("status") == "matched"])
+                        rejected_all.extend([r for r in res if r.get("status") in ("rejected_filter", "rejected_score")])
+
+                if config.TELEGRAM_BOT_TOKEN and config.TELEGRAM_CHAT_ID:
+                    try:
+                        await send_telegram_results(
+                            passed_jobs=matched_all,
+                            failed_jobs=rejected_all,
+                            results_file=config.BASE_DIR / "bot.log",
+                        )
+                    except Exception:
+                        pass
+                return len(matched_all)
+
+            new_matches = asyncio.run(_run_search())
+            st.success(f"Discovery complete! Found {new_matches} matches. Refreshing...")
+            st.rerun()
+
+    st.markdown("---")
+    if config.TELEGRAM_BOT_TOKEN and config.TELEGRAM_CHAT_ID:
+        st.success("🟢 Telegram Interactive Approval: Active")
+        st.caption("Matches are pushed to your Telegram with 1-tap **[Approve & Apply]** buttons.")
+    else:
+        st.info("⚪ Telegram: Not configured")
+
+    st.markdown("---")
     st.caption("Workflow Mode: **Review-Before-Submit (Default)**")
     st.caption("Database: `job_bot.db` (SQLite)")
 
