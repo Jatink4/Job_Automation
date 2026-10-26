@@ -145,7 +145,7 @@ class IndeedScraper(BaseScraper):
 
     async def scrape(self) -> list[dict[str, Any]]:
         """Execute web discovery across preferred titles and locations."""
-        page = await self.browser.new_page()
+        page = await self.browser.new_page(caller="web")
         try:
             await self.check_session(page)
 
@@ -195,4 +195,4 @@ class IndeedScraper(BaseScraper):
             logger.info("Web discovery complete — {} unique jobs collected across internet", len(all_jobs))
             return all_jobs
         finally:
-            await page.close()
+            await self.browser.safe_close_page(page, caller="web")

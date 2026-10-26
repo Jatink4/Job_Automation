@@ -42,24 +42,49 @@ class CaptchaDetectedError(Exception):
 # ──────────────────────────────────────────────────────────────────────
 class BrowserManager:
     """
-    Wraps Playwright lifecycle.
+    Robust Playwright Browser Lifecycle Manager.
 
-    Usage::
-
-        async with BrowserManager() as bm:
-            page = await bm.new_page()
-            ...
+    Guarantees:
+    - Well-defined lifecycle scope (single context-manager ownership).
+    - Health checking and automatic self-healing if Chromium crashes or disconnects.
+    - Serialized page creation via asyncio.Lock to prevent CDP protocol race conditions.
+    - Independent page ownership per scraper; safe page cleanup without premature context teardown.
+    - Context-level init script injection (no unawaited background event handlers).
+    - Comprehensive diagnostic logging (startup, page creation, closure, recovery, teardown).
     """
 
     def __init__(self) -> None:
         self._playwright: Optional[Playwright] = None
         self._context: Optional[BrowserContext] = None
+        self._lifecycle_lock = asyncio.Lock()
+        self._page_lock = asyncio.Lock()
+        self._is_shutting_down = False
+        self._recovery_count = 0
+        self._max_recoveries = 3
 
-    # ── context-manager protocol ────────────────────────────────────
-    async def __aenter__(self) -> "BrowserManager":
-        self._playwright = await async_playwright().start()
+    # ── Context Health & State ──────────────────────────────────────
+    def is_alive(self) -> bool:
+        """Return True if Playwright runtime and browser context are active and responsive."""
+        if self._is_shutting_down:
+            return False
+        if self._playwright is None or self._context is None:
+            return False
+        try:
+            if self._context.is_closed():
+                return False
+            # If browser object is attached, verify connection
+            if self._context.browser is not None and not self._context.browser.is_connected():
+                return False
+            return True
+        except Exception:
+            return False
 
-        # Randomise viewport dimensions for each run
+    async def _launch_context(self) -> BrowserContext:
+        """Internal helper to initialize Playwright and launch persistent Chromium."""
+        if self._playwright is None:
+            logger.info("[BrowserManager] Starting Playwright runtime...")
+            self._playwright = await async_playwright().start()
+
         viewport_width = random.randint(1280, 1920)
         viewport_height = random.randint(720, 1080)
 
@@ -74,114 +99,228 @@ class BrowserManager:
             "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         ]
 
-        self._context = await self._playwright.chromium.launch_persistent_context(
-            user_data_dir=str(config.BROWSER_DATA_DIR),
-            headless=False,
-            viewport={"width": viewport_width, "height": viewport_height},
-            user_agent=random.choice(user_agents),
-            locale="en-US",
-            timezone_id="Asia/Kolkata",
-            args=[
-                "--disable-blink-features=AutomationControlled",
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-infobars",
-                "--disable-background-timer-throttling",
-                "--disable-popup-blocking",
-                "--disable-prompt-on-repost",
-                "--disable-extensions",
-                "--disable-component-extensions-with-background-pages",
-                "--disable-default-apps",
-                "--window-size={},{}".format(viewport_width, viewport_height),
-            ],
-            ignore_default_args=["--enable-automation"],
-        )
-
-        # Apply stealth to the context so all pages inherit it
-        await _stealth.apply_stealth_async(self._context)
-
-        # Extra anti-detection: patch navigator properties on every new page
-        async def _apply_extra_stealth(page: Page) -> None:
-            try:
-                if page.is_closed():
-                    return
-                await page.add_init_script("""
-                    // Remove webdriver flag
-                    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-
-                    // Fake plugins
-                    Object.defineProperty(navigator, 'plugins', {
-                        get: () => [1, 2, 3, 4, 5]
-                    });
-
-                    // Fake languages
-                    Object.defineProperty(navigator, 'languages', {
-                        get: () => ['en-US', 'en']
-                    });
-
-                    // Remove automation indicators from chrome object
-                    if (window.chrome) {
-                        window.chrome.runtime = { connect: () => {}, sendMessage: () => {} };
-                    }
-
-                    // Override permissions query
-                    const originalQuery = window.navigator.permissions.query;
-                    window.navigator.permissions.query = (parameters) =>
-                        parameters.name === 'notifications'
-                            ? Promise.resolve({ state: Notification.permission })
-                            : originalQuery(parameters);
-                """)
-            except Exception as exc:
-                # New tabs can close before init script attaches; don't crash the run
-                logger.debug("Stealth init skipped: {}", exc)
-
-        # Apply to existing pages
-        for p in self._context.pages:
-            await _apply_extra_stealth(p)
-
-        # Apply to all future pages
-        self._context.on("page", lambda p: asyncio.ensure_future(_apply_extra_stealth(p)))
-
         logger.info(
-            "🔴 Browser launched — viewport {}×{}, user-data-dir={}",
+            "[BrowserManager] Launching persistent Chromium context (user_data_dir='{}', viewport={}x{})...",
+            config.BROWSER_DATA_DIR,
             viewport_width,
             viewport_height,
+        )
+
+        # Stable, non-conflicting arguments for Windows persistent context
+        stable_args = [
+            "--disable-blink-features=AutomationControlled",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-infobars",
+            "--disable-background-timer-throttling",
+            "--disable-popup-blocking",
+            "--window-size={},{}".format(viewport_width, viewport_height),
+        ]
+
+        try:
+            self._context = await self._playwright.chromium.launch_persistent_context(
+                user_data_dir=str(config.BROWSER_DATA_DIR),
+                headless=False,
+                viewport={"width": viewport_width, "height": viewport_height},
+                user_agent=random.choice(user_agents),
+                locale="en-US",
+                timezone_id="Asia/Kolkata",
+                args=stable_args,
+                ignore_default_args=["--enable-automation"],
+            )
+        except Exception as exc:
+            logger.error(
+                "[BrowserManager] Failed to launch Chromium persistent context: {}. "
+                "Ensure no other process is locking '{}'.",
+                exc,
+                config.BROWSER_DATA_DIR,
+            )
+            raise
+
+        # Diagnostic listener for unexpected context closure
+        self._context.on("close", lambda ctx: logger.warning("[BrowserManager] Chromium context closed by user or host system."))
+
+        # Apply stealth at context level
+        try:
+            await _stealth.apply_stealth_async(self._context)
+        except Exception as exc:
+            logger.debug("[BrowserManager] Stealth initialization notice: {}", exc)
+
+        # Extra anti-detection script attached directly to context (applies cleanly to all future pages via CDP)
+        await self._context.add_init_script("""
+            // Remove webdriver flag
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+
+            // Fake plugins
+            Object.defineProperty(navigator, 'plugins', {
+                get: () => [1, 2, 3, 4, 5]
+            });
+
+            // Fake languages
+            Object.defineProperty(navigator, 'languages', {
+                get: () => ['en-US', 'en']
+            });
+
+            // Remove automation indicators from chrome object
+            if (window.chrome) {
+                window.chrome.runtime = { connect: () => {}, sendMessage: () => {} };
+            }
+
+            // Override permissions query
+            const originalQuery = window.navigator.permissions.query;
+            window.navigator.permissions.query = (parameters) =>
+                parameters.name === 'notifications'
+                    ? Promise.resolve({ state: Notification.permission })
+                    : originalQuery(parameters);
+        """)
+
+        logger.info(
+            "🔴 [BrowserManager] Browser context active (pages: {}, user-data-dir={})",
+            len(self._context.pages),
             config.BROWSER_DATA_DIR,
         )
-        logger.info("📌 IMPORTANT: A browser window is now open. If you need to log in, the browser will prompt you.")
-        return self
+        return self._context
 
-    async def __aexit__(self, *_exc: object) -> None:
+    async def ensure_context(self) -> BrowserContext:
+        """
+        Verify that the browser context is healthy and responsive.
+        If the context or browser process was closed or crashed, automatically re-establishes it.
+        """
+        async with self._lifecycle_lock:
+            if self.is_alive():
+                assert self._context is not None
+                return self._context
+
+            if self._is_shutting_down:
+                raise RuntimeError("[BrowserManager] Cannot create context during manager shutdown")
+
+            if self._recovery_count >= self._max_recoveries:
+                raise RuntimeError(
+                    f"[BrowserManager] Exceeded maximum recovery attempts ({self._max_recoveries}). "
+                    "Chromium cannot be stabilized."
+                )
+
+            self._recovery_count += 1
+            logger.warning(
+                "[BrowserManager] Browser context is closed or disconnected. Self-healing/recovering (attempt {}/{})...",
+                self._recovery_count,
+                self._max_recoveries,
+            )
+
+            # Clean up dead references
+            await self._cleanup_context_internal()
+            return await self._launch_context()
+
+    async def _cleanup_context_internal(self) -> None:
+        """Internal teardown of context without stopping playwright unless required."""
         if self._context:
             try:
-                await self._context.close()
-                logger.info("Browser context closed")
-            except Exception:
-                logger.info("Browser context was already closed")
-        if self._playwright:
-            try:
-                await self._playwright.stop()
+                if not self._context.is_closed():
+                    await self._context.close()
             except Exception:
                 pass
+            self._context = None
 
-    # ── public helpers ──────────────────────────────────────────────
-    async def new_page(self) -> Page:
-        """Create a brand-new tab. Stealth is applied at context level."""
-        assert self._context is not None, "BrowserManager not initialised"
-        page = await self._context.new_page()
-        return page
+    # ── Context-manager protocol ────────────────────────────────────
+    async def __aenter__(self) -> "BrowserManager":
+        async with self._lifecycle_lock:
+            self._is_shutting_down = False
+            self._recovery_count = 0
+            await self._launch_context()
+            return self
 
-    async def get_page(self) -> Page:
-        """Return the first existing tab, or create one if none exist."""
-        assert self._context is not None, "BrowserManager not initialised"
-        pages = self._context.pages
-        if pages:
-            return pages[0]
-        return await self._context.new_page()
+    async def __aexit__(self, *_exc: object) -> None:
+        async with self._lifecycle_lock:
+            self._is_shutting_down = True
+            logger.info("[BrowserManager] Initiating clean shutdown of browser resources...")
+
+            # 1. Close open pages first
+            if self._context and not self._context.is_closed():
+                try:
+                    for page in list(self._context.pages):
+                        if not page.is_closed():
+                            await page.close()
+                except Exception as exc:
+                    logger.debug("[BrowserManager] Error closing pages during teardown: {}", exc)
+
+            # 2. Close persistent context
+            if self._context:
+                try:
+                    if not self._context.is_closed():
+                        await self._context.close()
+                    logger.info("[BrowserManager] Browser context closed successfully.")
+                except Exception as exc:
+                    logger.debug("[BrowserManager] Context was already closed: {}", exc)
+                self._context = None
+
+            # 3. Stop Playwright runtime
+            if self._playwright:
+                try:
+                    await self._playwright.stop()
+                    logger.info("[BrowserManager] Playwright runtime stopped cleanly.")
+                except Exception as exc:
+                    logger.debug("[BrowserManager] Error stopping Playwright runtime: {}", exc)
+                self._playwright = None
+
+    # ── Public Page Helpers ─────────────────────────────────────────
+    async def new_page(self, caller: str = "unknown") -> Page:
+        """
+        Create a new isolated tab for a specific scraper or task.
+        Serialized through _page_lock with auto-recovery if the context was closed.
+        """
+        async with self._page_lock:
+            max_attempts = 2
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    context = await self.ensure_context()
+                    logger.debug("[BrowserManager] Opening new tab for '{}' (open tabs: {})", caller, len(context.pages))
+                    page = await context.new_page()
+                    return page
+                except Exception as exc:
+                    logger.warning(
+                        "[BrowserManager] Failed opening new tab for '{}' on attempt {}/{}: {}",
+                        caller,
+                        attempt,
+                        max_attempts,
+                        exc,
+                    )
+                    # Mark context invalid to trigger recovery on next attempt
+                    self._context = None
+                    if attempt == max_attempts:
+                        logger.error("[BrowserManager] Exhausted page-creation retries for '{}'", caller)
+                        raise
+                    await asyncio.sleep(1.0)
+
+        raise RuntimeError(f"[BrowserManager] Unable to create tab for '{caller}'")
+
+    async def get_page(self, caller: str = "unknown") -> Page:
+        """
+        Return an active page for the caller.
+        If pages exist and are healthy, returns one; otherwise creates a clean new tab.
+        """
+        async with self._page_lock:
+            context = await self.ensure_context()
+            for p in context.pages:
+                if not p.is_closed():
+                    return p
+        return await self.new_page(caller=caller)
+
+    async def safe_close_page(self, page: Optional[Page], caller: str = "unknown") -> None:
+        """
+        Safely closes a page without raising errors or affecting shared browser context.
+        """
+        if page is None:
+            return
+        try:
+            if not page.is_closed():
+                await page.close()
+                logger.debug("[BrowserManager] Closed tab for '{}'", caller)
+        except Exception as exc:
+            logger.debug("[BrowserManager] Notice while closing tab for '{}': {}", caller, exc)
 
     @property
     def context(self) -> BrowserContext:
-        assert self._context is not None, "BrowserManager not initialised"
+        assert self._context is not None, "BrowserManager context not initialised"
         return self._context
 
 

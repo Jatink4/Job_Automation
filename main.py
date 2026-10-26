@@ -138,6 +138,12 @@ def parse_args() -> argparse.Namespace:
         default=False,
         help="Run the interactive Telegram bot polling listener for mobile approvals",
     )
+    parser.add_argument(
+        "--login",
+        action="store_true",
+        default=False,
+        help="Open Chromium browser to log in to LinkedIn & Naukri and persist session cookies",
+    )
     return parser.parse_args()
 
 
@@ -240,6 +246,11 @@ async def run_discovery_pipeline(args: argparse.Namespace) -> None:
 
 def main() -> None:
     args = parse_args()
+
+    if args.login:
+        from scripts.login import interactive_login
+        asyncio.run(interactive_login())
+        return
 
     if args.dashboard:
         logger.info("Launching Streamlit dashboard...")

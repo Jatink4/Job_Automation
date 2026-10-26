@@ -46,16 +46,17 @@ class LinkedInScraper(BaseScraper):
 
     async def scrape_saved(self) -> list[dict[str, Any]]:
         """Collect jobs from LinkedIn Jobs → My Jobs → Saved via UI clicks."""
-        page = await self.browser.get_page()
-        if not await self.check_session(page):
-            raise SessionExpiredError(
-                "LinkedIn session expired — please log in manually in the persistent browser."
-            )
+        page = await self.browser.new_page(caller="linkedin_saved")
+        try:
+            if not await self.check_session(page):
+                raise SessionExpiredError(
+                    "LinkedIn session expired — please log in manually in the persistent browser."
+                )
 
-        # Navigate through UI — direct saved-jobs URL often redirects bots to feed
-        await page.goto("https://www.linkedin.com/jobs/", wait_until="domcontentloaded", timeout=45_000)
-        await human_delay(2, 4)
-        logger.info("On Jobs hub: {}", page.url[:100])
+            # Navigate through UI — direct saved-jobs URL often redirects bots to feed
+            await page.goto("https://www.linkedin.com/jobs/", wait_until="domcontentloaded", timeout=45_000)
+            await human_delay(2, 4)
+            logger.info("On Jobs hub: {}", page.url[:100])
 
         opened = False
         for sel in (
@@ -191,10 +192,12 @@ class LinkedInScraper(BaseScraper):
 
         logger.info("Collected {} saved LinkedIn jobs", len(jobs))
         return jobs
+    finally:
+        await self.browser.safe_close_page(page, caller="linkedin_saved")
 
     async def scrape(self) -> list[dict[str, Any]]:
         """Run the full scraping flow for LinkedIn — prioritize Easy Apply jobs first."""
-        page = await self.browser.get_page()
+        page = await self.browser.new_page(caller="linkedin")
         try:
             if not await self.check_session(page):
                 raise SessionExpiredError(
@@ -239,7 +242,7 @@ class LinkedInScraper(BaseScraper):
             logger.info("LinkedIn scrape complete — {} Easy Apply jobs from {} combos", len(all_jobs), total_combos)
             return all_jobs
         finally:
-            pass
+            await self.browser.safe_close_page(page, caller="linkedin")
 
     # ──────────────────────────────────────────────────────────────
     #  Session check

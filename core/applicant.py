@@ -82,78 +82,80 @@ class JobApplicant:
 
     async def apply_to_jobs(self, jobs: list[dict[str, Any]], max_apps: int) -> list[dict[str, Any]]:
         applied: list[dict[str, Any]] = []
-        page = await self.browser.get_page()
+        page = await self.browser.new_page(caller="applicant")
+        try:
+            # Normalize IDs / URLs; drop junk
+            cleaned: list[dict[str, Any]] = []
+            for j in jobs:
+                jid = normalize_linkedin_job_id(j)
+                if j.get("source") == "linkedin":
+                    if not jid:
+                        logger.debug("Drop job without numeric id: {}", j.get("title"))
+                        continue
+                    j = {
+                        **j,
+                        "job_id": jid,
+                        "url": f"https://www.linkedin.com/jobs/view/{jid}/",
+                        "easy_apply": True if j.get("easy_apply", True) else False,
+                    }
+                cleaned.append(j)
 
-        # Normalize IDs / URLs; drop junk
-        cleaned: list[dict[str, Any]] = []
-        for j in jobs:
-            jid = normalize_linkedin_job_id(j)
-            if j.get("source") == "linkedin":
-                if not jid:
-                    logger.debug("Drop job without numeric id: {}", j.get("title"))
-                    continue
-                j = {
-                    **j,
-                    "job_id": jid,
-                    "url": f"https://www.linkedin.com/jobs/view/{jid}/",
-                    "easy_apply": True if j.get("easy_apply", True) else False,
-                }
-            cleaned.append(j)
+            candidates = [
+                j
+                for j in cleaned
+                if j.get("easy_apply")
+                and not already_applied(j.get("source", ""), str(j.get("job_id", "")))
+            ]
+            candidates.sort(key=lambda j: j.get("ai_score", 0), reverse=True)
 
-        candidates = [
-            j
-            for j in cleaned
-            if j.get("easy_apply")
-            and not already_applied(j.get("source", ""), str(j.get("job_id", "")))
-        ]
-        candidates.sort(key=lambda j: j.get("ai_score", 0), reverse=True)
-
-        logger.info(
-            "Apply queue: {} Easy Apply jobs (cap {}), {} skipped/invalid",
-            len(candidates),
-            max_apps,
-            len(jobs) - len(candidates),
-        )
-
-        for job in candidates[:max_apps]:
-            source = job.get("source", "")
-            title = job.get("title", "?")
-            company = job.get("company", "?")
-            logger.info("→ Applying: {} at {} ({})", title, company, source)
-
-            try:
-                if source == "linkedin":
-                    result = await self._apply_linkedin(page, job)
-                elif source == "naukri":
-                    result = await self._apply_naukri(page, job)
-                else:
-                    result = ApplyResult("skipped", f"unsupported source: {source}")
-            except Exception as exc:
-                logger.exception("Apply crashed for {}: {}", job.get("job_id"), exc)
-                result = ApplyResult("failed", str(exc))
-                try:
-                    await take_screenshot(page, f"fail_{job.get('job_id')}")
-                except Exception:
-                    pass
-
-            job["apply_status"] = result.status
-            job["apply_message"] = result.message
-            record_application(job, result.status, result.message)
-
-            if result.status == "applied":
-                applied.append(job)
-                logger.info("✓ Applied to {} at {}", title, company)
-            else:
-                logger.warning("✗ {} — {}: {}", result.status, title, result.message)
-
-            delay = random.uniform(
-                config.DELAY_BETWEEN_APPS_MIN,
-                config.DELAY_BETWEEN_APPS_MAX,
+            logger.info(
+                "Apply queue: {} Easy Apply jobs (cap {}), {} skipped/invalid",
+                len(candidates),
+                max_apps,
+                len(jobs) - len(candidates),
             )
-            logger.info("Waiting {:.0f}s before next application…", delay)
-            await asyncio.sleep(delay)
 
-        return applied
+            for job in candidates[:max_apps]:
+                source = job.get("source", "")
+                title = job.get("title", "?")
+                company = job.get("company", "?")
+                logger.info("→ Applying: {} at {} ({})", title, company, source)
+
+                try:
+                    if source == "linkedin":
+                        result = await self._apply_linkedin(page, job)
+                    elif source == "naukri":
+                        result = await self._apply_naukri(page, job)
+                    else:
+                        result = ApplyResult("skipped", f"unsupported source: {source}")
+                except Exception as exc:
+                    logger.exception("Apply crashed for {}: {}", job.get("job_id"), exc)
+                    result = ApplyResult("failed", str(exc))
+                    try:
+                        await take_screenshot(page, f"fail_{job.get('job_id')}")
+                    except Exception:
+                        pass
+
+                job["apply_status"] = result.status
+                job["apply_message"] = result.message
+                record_application(job, result.status, result.message)
+
+                if result.status == "applied":
+                    applied.append(job)
+                    logger.info("✓ Applied to {} at {}", title, company)
+                else:
+                    logger.warning("✗ {} — {}: {}", result.status, title, result.message)
+
+                delay = random.uniform(
+                    config.DELAY_BETWEEN_APPS_MIN,
+                    config.DELAY_BETWEEN_APPS_MAX,
+                )
+                logger.info("Waiting {:.0f}s before next application…", delay)
+                await asyncio.sleep(delay)
+
+            return applied
+        finally:
+            await self.browser.safe_close_page(page, caller="applicant")
 
     # ── LinkedIn Easy Apply ─────────────────────────────────────────
 

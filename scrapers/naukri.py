@@ -170,7 +170,7 @@ class NaukriScraper(BaseScraper):
     #  Main scrape flow
     # ──────────────────────────────────────────────────────────────
     async def scrape(self) -> list[dict[str, Any]]:
-        page = await self.browser.new_page()
+        page = await self.browser.new_page(caller="naukri")
 
         try:
             # 1. Session check
@@ -223,4 +223,4 @@ class NaukriScraper(BaseScraper):
             return all_jobs
 
         finally:
-            await page.close()
+            await self.browser.safe_close_page(page, caller="naukri")
