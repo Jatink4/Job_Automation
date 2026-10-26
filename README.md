@@ -272,9 +272,16 @@ This project is organized into 10 structured, modular commits:
 
 ---
 
-## Attribution & License
+## Author & Maintainer
 
-This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
+**Jatin Kumar**  
+- Department of Computer Science & Engineering, Indian Institute of Technology (ISM) Dhanbad  
+- GitHub: [@Jatink4](https://github.com/Jatink4)  
+- LinkedIn: [linkedin.com/in/jatin-kumar](https://linkedin.com/in/jatin-kumar)
 
-- Based upon the open-source architecture by **[Anuraga Muruganathan](https://github.com/AnuragaMuruganathan/job-bot)** and **[gurugsv7](https://github.com/gurugsv7/job-bot)**.
-- Customized and extended with 3 configurable job profiles, transparent 4-dimension match scoring, local Ollama and offline evaluation, truthful cover-letter assistance, Windows Task Scheduler automation, and an interactive Streamlit review dashboard.
+---
+
+## License
+
+This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.  
+Copyright (c) 2026 Jatin Kumar. Portions copyright respective upstream scaffold contributors.
