@@ -2,47 +2,65 @@
   "profiles": [
     {
       "id": "profile_1",
-      "name": "Full Stack & Python Developer",
+      "name": "Software Engineer & Full Stack Developer",
       "target_titles": [
         "Software Engineer",
         "Full Stack Developer",
-        "Python Developer",
-        "Backend Engineer",
-        "Junior Software Engineer"
+        "Backend Developer",
+        "Frontend Developer",
+        "Junior Software Engineer",
+        "Associate Software Engineer",
+        "Graduate Software Engineer",
+        "SDE-1",
+        "SDE"
       ],
       "required_skills": [
         "Python",
-        "FastAPI",
-        "React",
-        "SQL",
-        "Git"
+        "C++",
+        "JavaScript",
+        "React.js",
+        "Node.js",
+        "Express.js",
+        "MongoDB",
+        "REST APIs",
+        "SQL"
       ],
       "secondary_skills": [
-        "TypeScript",
-        "Docker",
-        "REST APIs",
-        "Node.js",
-        "PostgreSQL"
+        "FastAPI",
+        "Retrieval-Augmented Generation",
+        "LLM",
+        "AI Agents",
+        "Firebase",
+        "Git",
+        "GitHub",
+        "Render",
+        "Vercel",
+        "Pinecone"
       ],
-      "min_salary": 600000.0,
+      "min_salary": 1200000.0,
       "currency": "INR",
       "preferred_locations": [
         "Bangalore",
         "Hyderabad",
         "Pune",
-        "Remote"
+        "Gurgaon",
+        "Noida",
+        "Mumbai",
+        "Delhi NCR",
+        "Chennai",
+        "Remote",
+        "India"
       ],
       "location_type": "Any",
-      "experience_level": "Entry-level / Mid",
+      "experience_level": "Fresher / Entry-level (0 years experience)",
       "min_experience_years": 0,
-      "max_experience_years": 3,
+      "max_experience_years": 1,
       "employment_type": [
-        "Full-time",
-        "Contract"
+        "Full-time"
       ],
       "work_authorization": "Authorized",
       "requires_sponsorship": false,
-      "min_match_score": 65,
+      "min_match_score": 60,
       "blacklist_companies": [
         "Revature",
         "CyberCoders"
@@ -50,154 +68,245 @@
       "blacklist_keywords": [
         "unpaid",
         "commission only",
+        "5+ years",
+        "6+ years",
+        "7+ years",
+        "8+ years",
         "10+ years",
         "director",
-        "principal"
+        "principal architect",
+        "senior manager",
+        "vp",
+        "vice president"
       ],
       "whitelist_keywords": [
         "software",
         "python",
         "full stack",
         "backend",
+        "frontend",
         "developer",
-        "engineer"
+        "engineer",
+        "sde",
+        "fresher",
+        "graduate",
+        "trainee",
+        "entry level"
       ],
       "screening_answers": {
-        "years_of_experience": "2",
+        "years_of_experience": "0",
+        "professional_experience_years": "0",
+        "internship_experience": "Yes",
+        "internship_months": "3",
+        "current_ctc": "0",
+        "expected_ctc": "12",
         "notice_period": "Immediate",
-        "expected_salary": "700000",
+        "willing_to_relocate": true,
         "work_authorization": "Yes",
-        "sponsorship_required": "No"
-      }
+        "sponsorship_required": "No",
+        "highest_education": "B.Tech Computer Science and Engineering",
+        "institution": "IIT (ISM) Dhanbad",
+        "cgpa": "6.86",
+        "graduation_year": "2027"
+      },
+      "resume_pdf_path": "./public/Tech_Resume.pdf"
     },
     {
       "id": "profile_2",
-      "name": "Data Engineer & Machine Learning",
+      "name": "Data Analyst & Analytics Engineer",
       "target_titles": [
-        "Data Engineer",
-        "Machine Learning Engineer",
-        "AI Engineer",
-        "Python Data Engineer",
-        "Junior Data Scientist"
+        "Data Analyst",
+        "Junior Data Analyst",
+        "Analytics Engineer",
+        "Business Analyst - Data",
+        "Data Analytics Associate",
+        "Junior Data Scientist",
+        "Business Intelligence Analyst",
+        "BI Developer",
+        "Graduate Analyst"
       ],
       "required_skills": [
         "Python",
-        "Pandas",
         "SQL",
-        "Machine Learning",
-        "PyTorch"
+        "Pandas",
+        "NumPy",
+        "Power BI",
+        "Data Cleaning",
+        "Exploratory Data Analysis (EDA)"
       ],
       "secondary_skills": [
-        "Docker",
-        "FastAPI",
-        "Scikit-Learn",
-        "ETL",
-        "Spark"
+        "Matplotlib",
+        "Seaborn",
+        "Microsoft Excel",
+        "Feature Engineering",
+        "Statistical Analysis",
+        "Dashboard Development",
+        "KPI Reporting",
+        "C++"
       ],
-      "min_salary": 700000.0,
+      "min_salary": 1200000.0,
       "currency": "INR",
       "preferred_locations": [
         "Bangalore",
         "Gurgaon",
+        "Noida",
         "Mumbai",
-        "Remote"
+        "Hyderabad",
+        "Pune",
+        "Delhi NCR",
+        "Remote",
+        "India"
       ],
       "location_type": "Any",
-      "experience_level": "Entry-level / Associate",
+      "experience_level": "Fresher / Entry-level (0 years experience)",
       "min_experience_years": 0,
-      "max_experience_years": 3,
+      "max_experience_years": 1,
       "employment_type": [
         "Full-time"
       ],
       "work_authorization": "Authorized",
       "requires_sponsorship": false,
-      "min_match_score": 65,
+      "min_match_score": 60,
       "blacklist_companies": [],
       "blacklist_keywords": [
         "unpaid",
         "crypto trading",
-        "phd required",
-        "lead researcher"
+        "5+ years",
+        "6+ years",
+        "7+ years",
+        "8+ years",
+        "10+ years",
+        "lead researcher",
+        "director"
       ],
       "whitelist_keywords": [
         "data",
-        "machine learning",
-        "ai",
-        "etl",
+        "analyst",
+        "analytics",
+        "sql",
         "python",
-        "pipeline"
+        "power bi",
+        "bi",
+        "business intelligence",
+        "fresher",
+        "graduate",
+        "entry level"
       ],
       "screening_answers": {
-        "years_of_experience": "2",
-        "notice_period": "15 days",
-        "expected_salary": "800000",
+        "years_of_experience": "0",
+        "professional_experience_years": "0",
+        "internship_experience": "Yes",
+        "internship_months": "3",
+        "current_ctc": "0",
+        "expected_ctc": "12",
+        "notice_period": "Immediate",
+        "willing_to_relocate": true,
         "work_authorization": "Yes",
-        "sponsorship_required": "No"
-      }
+        "sponsorship_required": "No",
+        "highest_education": "B.Tech Computer Science and Engineering",
+        "institution": "IIT (ISM) Dhanbad",
+        "cgpa": "6.86",
+        "graduation_year": "2027"
+      },
+      "resume_pdf_path": "./public/Data_Analystics.pdf"
     },
     {
       "id": "profile_3",
-      "name": "DevOps & Cloud Engineer",
+      "name": "Strategy & Management Consulting / Business Analyst",
       "target_titles": [
-        "DevOps Engineer",
-        "Cloud Engineer",
-        "Site Reliability Engineer",
-        "Platform Engineer",
-        "Associate Cloud Architect"
+        "Management Consulting Associate",
+        "Consulting Analyst",
+        "Strategy Analyst",
+        "Business Analyst",
+        "Associate Consultant",
+        "Strategy & Operations Analyst",
+        "Corporate Strategy Associate",
+        "Graduate Consultant",
+        "Junior Consultant"
       ],
       "required_skills": [
-        "AWS",
-        "Docker",
-        "Linux",
-        "CI/CD",
+        "Business Strategy",
+        "Market Research",
+        "Financial Modeling",
+        "MECE",
+        "Root Cause Analysis",
+        "Power BI",
+        "Microsoft Excel",
+        "SQL",
         "Python"
       ],
       "secondary_skills": [
-        "Kubernetes",
-        "Terraform",
-        "GitHub Actions",
-        "Bash",
-        "Prometheus"
+        "TAM/SAM/SOM",
+        "GTM Strategy",
+        "Pricing Strategy",
+        "SWOT Analysis",
+        "KPI Design",
+        "Stakeholder Management",
+        "Executive Presentation"
       ],
-      "min_salary": 650000.0,
+      "min_salary": 1200000.0,
       "currency": "INR",
       "preferred_locations": [
+        "Gurgaon",
+        "Mumbai",
         "Bangalore",
-        "Hyderabad",
+        "Delhi NCR",
         "Noida",
-        "Remote"
+        "Hyderabad",
+        "Pune",
+        "Remote",
+        "India"
       ],
       "location_type": "Any",
-      "experience_level": "Associate / Mid",
+      "experience_level": "Fresher / Entry-level (0 years experience)",
       "min_experience_years": 0,
-      "max_experience_years": 3,
+      "max_experience_years": 1,
       "employment_type": [
         "Full-time"
       ],
       "work_authorization": "Authorized",
       "requires_sponsorship": false,
-      "min_match_score": 65,
+      "min_match_score": 60,
       "blacklist_companies": [],
       "blacklist_keywords": [
         "unpaid",
-        "on-call 24/7 without compensation",
-        "manager"
+        "5+ years",
+        "6+ years",
+        "7+ years",
+        "8+ years",
+        "10+ years",
+        "partner",
+        "engagement manager",
+        "director"
       ],
       "whitelist_keywords": [
-        "cloud",
-        "devops",
-        "aws",
-        "docker",
-        "ci/cd",
-        "infrastructure"
+        "consulting",
+        "strategy",
+        "business analyst",
+        "consultant",
+        "market research",
+        "analyst",
+        "fresher",
+        "graduate",
+        "entry level"
       ],
       "screening_answers": {
-        "years_of_experience": "2",
+        "years_of_experience": "0",
+        "professional_experience_years": "0",
+        "internship_experience": "Yes",
+        "internship_months": "3",
+        "current_ctc": "0",
+        "expected_ctc": "12",
         "notice_period": "Immediate",
-        "expected_salary": "750000",
+        "willing_to_relocate": true,
         "work_authorization": "Yes",
-        "sponsorship_required": "No"
-      }
+        "sponsorship_required": "No",
+        "highest_education": "B.Tech Computer Science and Engineering",
+        "institution": "IIT (ISM) Dhanbad",
+        "cgpa": "6.86",
+        "graduation_year": "2027"
+      },
+      "resume_pdf_path": "./public/Consulting_Resume.pdf"
     }
   ]
 }
