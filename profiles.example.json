@@ -1,0 +1,203 @@
+{
+  "profiles": [
+    {
+      "id": "profile_1",
+      "name": "Full Stack & Python Developer",
+      "target_titles": [
+        "Software Engineer",
+        "Full Stack Developer",
+        "Python Developer",
+        "Backend Engineer",
+        "Junior Software Engineer"
+      ],
+      "required_skills": [
+        "Python",
+        "FastAPI",
+        "React",
+        "SQL",
+        "Git"
+      ],
+      "secondary_skills": [
+        "TypeScript",
+        "Docker",
+        "REST APIs",
+        "Node.js",
+        "PostgreSQL"
+      ],
+      "min_salary": 600000.0,
+      "currency": "INR",
+      "preferred_locations": [
+        "Bangalore",
+        "Hyderabad",
+        "Pune",
+        "Remote"
+      ],
+      "location_type": "Any",
+      "experience_level": "Entry-level / Mid",
+      "min_experience_years": 0,
+      "max_experience_years": 3,
+      "employment_type": [
+        "Full-time",
+        "Contract"
+      ],
+      "work_authorization": "Authorized",
+      "requires_sponsorship": false,
+      "min_match_score": 65,
+      "blacklist_companies": [
+        "Revature",
+        "CyberCoders"
+      ],
+      "blacklist_keywords": [
+        "unpaid",
+        "commission only",
+        "10+ years",
+        "director",
+        "principal"
+      ],
+      "whitelist_keywords": [
+        "software",
+        "python",
+        "full stack",
+        "backend",
+        "developer",
+        "engineer"
+      ],
+      "screening_answers": {
+        "years_of_experience": "2",
+        "notice_period": "Immediate",
+        "expected_salary": "700000",
+        "work_authorization": "Yes",
+        "sponsorship_required": "No"
+      }
+    },
+    {
+      "id": "profile_2",
+      "name": "Data Engineer & Machine Learning",
+      "target_titles": [
+        "Data Engineer",
+        "Machine Learning Engineer",
+        "AI Engineer",
+        "Python Data Engineer",
+        "Junior Data Scientist"
+      ],
+      "required_skills": [
+        "Python",
+        "Pandas",
+        "SQL",
+        "Machine Learning",
+        "PyTorch"
+      ],
+      "secondary_skills": [
+        "Docker",
+        "FastAPI",
+        "Scikit-Learn",
+        "ETL",
+        "Spark"
+      ],
+      "min_salary": 700000.0,
+      "currency": "INR",
+      "preferred_locations": [
+        "Bangalore",
+        "Gurgaon",
+        "Mumbai",
+        "Remote"
+      ],
+      "location_type": "Any",
+      "experience_level": "Entry-level / Associate",
+      "min_experience_years": 0,
+      "max_experience_years": 3,
+      "employment_type": [
+        "Full-time"
+      ],
+      "work_authorization": "Authorized",
+      "requires_sponsorship": false,
+      "min_match_score": 65,
+      "blacklist_companies": [],
+      "blacklist_keywords": [
+        "unpaid",
+        "crypto trading",
+        "phd required",
+        "lead researcher"
+      ],
+      "whitelist_keywords": [
+        "data",
+        "machine learning",
+        "ai",
+        "etl",
+        "python",
+        "pipeline"
+      ],
+      "screening_answers": {
+        "years_of_experience": "2",
+        "notice_period": "15 days",
+        "expected_salary": "800000",
+        "work_authorization": "Yes",
+        "sponsorship_required": "No"
+      }
+    },
+    {
+      "id": "profile_3",
+      "name": "DevOps & Cloud Engineer",
+      "target_titles": [
+        "DevOps Engineer",
+        "Cloud Engineer",
+        "Site Reliability Engineer",
+        "Platform Engineer",
+        "Associate Cloud Architect"
+      ],
+      "required_skills": [
+        "AWS",
+        "Docker",
+        "Linux",
+        "CI/CD",
+        "Python"
+      ],
+      "secondary_skills": [
+        "Kubernetes",
+        "Terraform",
+        "GitHub Actions",
+        "Bash",
+        "Prometheus"
+      ],
+      "min_salary": 650000.0,
+      "currency": "INR",
+      "preferred_locations": [
+        "Bangalore",
+        "Hyderabad",
+        "Noida",
+        "Remote"
+      ],
+      "location_type": "Any",
+      "experience_level": "Associate / Mid",
+      "min_experience_years": 0,
+      "max_experience_years": 3,
+      "employment_type": [
+        "Full-time"
+      ],
+      "work_authorization": "Authorized",
+      "requires_sponsorship": false,
+      "min_match_score": 65,
+      "blacklist_companies": [],
+      "blacklist_keywords": [
+        "unpaid",
+        "on-call 24/7 without compensation",
+        "manager"
+      ],
+      "whitelist_keywords": [
+        "cloud",
+        "devops",
+        "aws",
+        "docker",
+        "ci/cd",
+        "infrastructure"
+      ],
+      "screening_answers": {
+        "years_of_experience": "2",
+        "notice_period": "Immediate",
+        "expected_salary": "750000",
+        "work_authorization": "Yes",
+        "sponsorship_required": "No"
+      }
+    }
+  ]
+}
