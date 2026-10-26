@@ -69,7 +69,10 @@ class JobDiscoveryEngine:
                 "status": "rejected_filter",
                 "job_id": job_id,
                 "title": title,
+                "company": company,
                 "reason": filter_reason,
+                "url": url,
+                "source": source,
                 "db_id": row_id,
             }
 
@@ -94,8 +97,12 @@ class JobDiscoveryEngine:
                 "status": "rejected_score",
                 "job_id": job_id,
                 "title": title,
+                "company": company,
                 "score": total_score,
+                "ai_score": total_score,
                 "reason": rejection_note,
+                "url": url,
+                "source": source,
                 "db_id": row_id,
             }
 
@@ -124,8 +131,11 @@ class JobDiscoveryEngine:
             "title": title,
             "company": company,
             "score": total_score,
+            "ai_score": total_score,
             "breakdown": score_breakdown.to_dict(),
             "manual_apply_url": raw_job.get("url"),
+            "url": raw_job.get("url"),
+            "source": source,
             "db_id": row_id,
         }
 
@@ -135,18 +145,17 @@ class JobDiscoveryEngine:
         resume: dict[str, Any],
         browser_manager: Optional[Any] = None,
         limit_per_search: int = 15,
+        sites: str = "linkedin",
     ) -> list[dict[str, Any]]:
         """
-        Discovers and processes jobs for a specific profile.
+        Discovers and processes jobs for a specific profile across selected platforms (LinkedIn, Naukri, or both).
         """
-        logger.info("🔍 Starting Discovery for Profile: '{}'", profile.name)
+        logger.info("🔍 Starting Discovery for Profile: '{}' on [{}]", profile.name, sites.upper())
         discovered_jobs: list[dict[str, Any]] = []
 
         if browser_manager is None:
             logger.info("Offline / standalone mode: no browser instance supplied.")
             return discovered_jobs
-
-        from scrapers.linkedin import LinkedInScraper
 
         # Temporarily adapt scraper preferences to profile
         profile_resume = dict(resume)
@@ -158,19 +167,37 @@ class JobDiscoveryEngine:
             "min_ai_match_score": profile.min_match_score,
         }
 
-        try:
-            scraper = LinkedInScraper(browser_manager, profile_resume)
-            LinkedInScraper.MAX_TOTAL_JOBS = limit_per_search  # type: ignore[attr-defined]
+        # 1. LinkedIn Discovery
+        if sites.lower() in ("linkedin", "all"):
+            try:
+                from scrapers.linkedin import LinkedInScraper
+                scraper = LinkedInScraper(browser_manager, profile_resume)
+                LinkedInScraper.MAX_TOTAL_JOBS = limit_per_search  # type: ignore[attr-defined]
 
-            raw_jobs = await scraper.scrape()
-            logger.info("Found {} raw listings for '{}'", len(raw_jobs), profile.name)
+                raw_jobs = await scraper.scrape()
+                logger.info("Found {} raw LinkedIn listings for '{}'", len(raw_jobs), profile.name)
 
-            for raw in raw_jobs:
-                res = await self.process_job(raw, profile, resume)
-                discovered_jobs.append(res)
-                await asyncio.sleep(0.2)
+                for raw in raw_jobs:
+                    res = await self.process_job(raw, profile, resume)
+                    discovered_jobs.append(res)
+                    await asyncio.sleep(0.2)
+            except Exception as exc:
+                logger.error("LinkedIn discovery error for profile '{}': {}", profile.name, exc)
 
-        except Exception as exc:
-            logger.error("Discovery error for profile '{}': {}", profile.name, exc)
+        # 2. Naukri Discovery
+        if sites.lower() in ("naukri", "all"):
+            try:
+                from scrapers.naukri import NaukriScraper
+                naukri_scraper = NaukriScraper(browser_manager, profile_resume)
+
+                raw_jobs = await naukri_scraper.scrape()
+                logger.info("Found {} raw Naukri listings for '{}'", len(raw_jobs), profile.name)
+
+                for raw in raw_jobs:
+                    res = await self.process_job(raw, profile, resume)
+                    discovered_jobs.append(res)
+                    await asyncio.sleep(0.2)
+            except Exception as exc:
+                logger.error("Naukri discovery error for profile '{}': {}", profile.name, exc)
 
         return discovered_jobs

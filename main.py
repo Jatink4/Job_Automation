@@ -156,6 +156,10 @@ async def run_discovery_pipeline(args: argparse.Namespace) -> None:
     discovery_engine = JobDiscoveryEngine(dry_run=args.dry_run)
     max_apps = args.max_apply or config.MAX_APPLICATIONS_PER_RUN
 
+    all_matched: list[dict[str, Any]] = []
+    all_rejected: list[dict[str, Any]] = []
+    all_applied: list[dict[str, Any]] = []
+
     # Check if browser interaction is needed
     async with BrowserManager() as browser:
         for profile in target_profiles:
@@ -168,9 +172,14 @@ async def run_discovery_pipeline(args: argparse.Namespace) -> None:
                 resume=resume,
                 browser_manager=browser,
                 limit_per_search=args.limit,
+                sites=args.sites,
             )
-            matched_count = sum(1 for r in results if r.get("status") == "matched")
-            logger.info("✓ Profile '{}': {} matched opportunities queued for review", profile.name, matched_count)
+            matched_for_profile = [r for r in results if r.get("status") == "matched"]
+            rejected_for_profile = [r for r in results if r.get("status") in ("rejected_filter", "rejected_score")]
+            all_matched.extend(matched_for_profile)
+            all_rejected.extend(rejected_for_profile)
+
+            logger.info("✓ Profile '{}': {} matched opportunities queued for review", profile.name, len(matched_for_profile))
 
         # If user explicitly opted into --auto-submit (not dry-run)
         if args.auto_submit and not args.dry_run:
@@ -179,10 +188,23 @@ async def run_discovery_pipeline(args: argparse.Namespace) -> None:
             if approved_jobs:
                 logger.info("═══ Submitting Approved Applications (Cap: {}) ═══", max_apps)
                 applicant = JobApplicant(browser, resume)
-                applied = await applicant.apply_to_jobs(approved_jobs, max_apps=max_apps)
-                logger.info("✓ Successfully applied to {} approved jobs", len(applied))
+                all_applied = await applicant.apply_to_jobs(approved_jobs, max_apps=max_apps)
+                logger.info("✓ Successfully applied to {} approved jobs", len(all_applied))
             else:
                 logger.info("No pre-approved jobs in queue. Review matched jobs on dashboard first.")
+
+    # Send Telegram notification if configured
+    if config.TELEGRAM_BOT_TOKEN and config.TELEGRAM_CHAT_ID:
+        try:
+            logger.info("📱 Sending Telegram discovery summary...")
+            await send_telegram_results(
+                passed_jobs=all_matched,
+                failed_jobs=all_rejected,
+                results_file=config.BASE_DIR / "bot.log",
+                applied=all_applied,
+            )
+        except Exception as exc:
+            logger.warning("Telegram notification encountered error: {}", exc)
 
     metrics = get_summary_metrics()
     logger.info("═" * 60)
