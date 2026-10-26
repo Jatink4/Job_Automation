@@ -256,6 +256,73 @@ async def cmd_pending(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await asyncio.sleep(0.4)
 
 
+async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send help message and instructions."""
+    if not update.effective_message:
+        return
+    text = (
+        "💡 <b>AI Job Bot Help & Commands</b>\n\n"
+        "• <b>/status</b> — Live count of discovered, matched, and applied jobs\n"
+        "• <b>/pending</b> — Review high-match jobs awaiting approval\n"
+        "• <b>/apply</b> — Automatically submit all pre-approved jobs\n"
+        "• <b>/help</b> — Display this instruction card\n\n"
+        "<b>How 1-Tap Application Works:</b>\n"
+        "1. When high-match listings (₹12+ LPA) are found, the bot pings you here.\n"
+        "2. Tap <b>[✅ Approve & Apply]</b> on the card.\n"
+        "3. Playwright launches in the background, attaches your resume PDF, submits the application, and alerts you when finished!"
+    )
+    await update.effective_message.reply_text(text, parse_mode="HTML")
+
+
+async def cmd_apply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Submit all approved applications."""
+    if not update.effective_message:
+        return
+    approved = get_jobs_by_status(status="approved")
+    if not approved:
+        await update.effective_message.reply_text(
+            "No pre-approved applications waiting in queue.\n"
+            "Use /pending to review matches and click [✅ Approve & Apply].",
+            parse_mode="HTML",
+        )
+        return
+
+    await update.effective_message.reply_text(
+        f"🚀 <b>Starting submission for {len(approved)} approved application(s)...</b>",
+        parse_mode="HTML",
+    )
+
+    try:
+        resume = load_resume()
+    except Exception:
+        resume = {}
+
+    from core.applicant import JobApplicant
+    from core.browser import BrowserManager
+
+    async def _batch_submit():
+        async with BrowserManager() as browser:
+            applicant = JobApplicant(browser, resume)
+            applied = await applicant.apply_to_jobs(approved, max_apps=5)
+            await update.effective_message.reply_text(
+                f"✓ Finished submission run: <b>{len(applied)}</b> jobs successfully applied!",
+                parse_mode="HTML",
+            )
+
+    asyncio.create_task(_batch_submit())
+
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Log errors caused by updates."""
+    from telegram.error import BadRequest, Conflict
+    if isinstance(context.error, Conflict):
+        logger.warning("Another instance of Telegram bot is already running. Stopping duplicate polling.")
+    elif isinstance(context.error, BadRequest) and "query is too old" in str(context.error).lower():
+        pass
+    else:
+        logger.debug("Telegram update error: {}", context.error)
+
+
 def create_telegram_application() -> Optional[Application]:
     """Create and configure the Telegram Bot Application."""
     if not config.TELEGRAM_BOT_TOKEN:
@@ -264,7 +331,10 @@ def create_telegram_application() -> Optional[Application]:
 
     app = ApplicationBuilder().token(config.TELEGRAM_BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", cmd_start))
+    app.add_handler(CommandHandler("help", cmd_help))
     app.add_handler(CommandHandler("status", cmd_status))
     app.add_handler(CommandHandler("pending", cmd_pending))
+    app.add_handler(CommandHandler("apply", cmd_apply))
     app.add_handler(CallbackQueryHandler(handle_callback_query))
+    app.add_error_handler(error_handler)
     return app
