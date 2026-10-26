@@ -9,11 +9,34 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
 from loguru import logger
+
+# ── Windows asyncio WinError 10054 teardown fix ───────────────────────
+if sys.platform == "win32":
+    try:
+        import asyncio.proactor_events
+        _orig_call_conn_lost = asyncio.proactor_events._ProactorBasePipeTransport._call_connection_lost
+
+        def _safe_call_connection_lost(self, exc):
+            try:
+                _orig_call_conn_lost(self, exc)
+            except (ConnectionResetError, OSError):
+                self._called_connection_lost = True
+                if hasattr(self, "_sock") and self._sock is not None:
+                    try:
+                        self._sock.close()
+                    except Exception:
+                        pass
+                    self._sock = None
+
+        asyncio.proactor_events._ProactorBasePipeTransport._call_connection_lost = _safe_call_connection_lost
+    except Exception:
+        pass
 
 # ── Resolve project root (directory that contains this file) ────────────
 BASE_DIR = Path(__file__).resolve().parent

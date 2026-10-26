@@ -14,6 +14,28 @@ Features:
 
 from __future__ import annotations
 
+import sys
+if sys.platform == "win32":
+    try:
+        import asyncio.proactor_events
+        _orig_call_conn_lost = asyncio.proactor_events._ProactorBasePipeTransport._call_connection_lost
+
+        def _safe_call_connection_lost(self, exc):
+            try:
+                _orig_call_conn_lost(self, exc)
+            except (ConnectionResetError, OSError):
+                self._called_connection_lost = True
+                if hasattr(self, "_sock") and self._sock is not None:
+                    try:
+                        self._sock.close()
+                    except Exception:
+                        pass
+                    self._sock = None
+
+        asyncio.proactor_events._ProactorBasePipeTransport._call_connection_lost = _safe_call_connection_lost
+    except Exception:
+        pass
+
 import json
 from datetime import datetime
 from pathlib import Path
