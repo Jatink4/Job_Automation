@@ -144,7 +144,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.subheader("⚡ Live Job Discovery")
-    search_sites = st.selectbox("Discovery Platform:", ["all", "linkedin", "naukri"], index=0)
+    search_sites = st.selectbox("Discovery Platform:", ["all", "web", "linkedin", "naukri"], index=0)
     search_limit = st.slider("Listings per profile:", min_value=5, max_value=30, value=15)
 
     if st.button("🚀 Search for Jobs Now", type="primary", use_container_width=True):

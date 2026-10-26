@@ -87,25 +87,41 @@ def parse_salary_text(raw_text: str) -> tuple[Optional[float], Optional[float], 
     return None, None, currency
 
 
+CITY_SYNONYMS: dict[str, list[str]] = {
+    "bangalore": ["bangalore", "bengaluru", "blr", "karnataka"],
+    "bengaluru": ["bangalore", "bengaluru", "blr", "karnataka"],
+    "gurgaon": ["gurgaon", "gurugram", "ncr", "delhi", "delhi ncr", "haryana"],
+    "gurugram": ["gurgaon", "gurugram", "ncr", "delhi", "delhi ncr", "haryana"],
+    "delhi": ["delhi", "new delhi", "delhi ncr", "ncr", "noida", "gurgaon", "gurugram"],
+    "noida": ["noida", "greater noida", "delhi", "delhi ncr", "delhi", "up"],
+    "mumbai": ["mumbai", "bombay", "navi mumbai", "thane", "maharashtra"],
+    "hyderabad": ["hyderabad", "secunderabad", "cyberabad", "telangana"],
+    "pune": ["pune", "hinjewadi", "maharashtra"],
+    "chennai": ["chennai", "madras", "tamil nadu"],
+    "remote": ["remote", "work from home", "wfh", "anywhere", "pan india", "india"],
+    "india": ["india", "pan india", "anywhere in india", "remote"],
+}
+
+
 def check_salary_filter(job: dict[str, Any], profile: JobProfile) -> FilterResult:
-    """Validate that stated salary satisfies profile minimum."""
+    """Validate that stated salary satisfies profile minimum (with soft leeway)."""
     if profile.min_salary is None or profile.min_salary <= 0:
         return FilterResult(True, "salary", "No minimum salary constraint configured", {})
 
     salary_raw = str(job.get("salary_raw") or job.get("salary") or "")
-    if not salary_raw:
-        # Many jobs do not publish salary in the posting; we pass unless explicitly rejected
-        return FilterResult(True, "salary", "Salary not specified by employer (passed)", {"salary_raw": None})
+    if not salary_raw or any(x in salary_raw.lower() for x in ("not disclosed", "competitive", "best in industry", "as per")):
+        # Undisclosed / standard market rates pass through to AI scoring
+        return FilterResult(True, "salary", "Salary not specified / competitive (passed to scoring)", {"salary_raw": salary_raw})
 
     min_val, max_val, curr = parse_salary_text(salary_raw)
     if max_val is not None:
-        # If currency aligns or is convertible, verify max offered reaches candidate minimum
-        effective_offered = max_val
-        if effective_offered < profile.min_salary:
+        # Soft threshold: Allow high-growth roles within 70% of target (e.g. 8.4L+ for 12L target)
+        soft_floor = profile.min_salary * 0.70
+        if max_val < soft_floor:
             return FilterResult(
                 False,
                 "salary",
-                f"Offered salary ({salary_raw}) is below profile minimum ({profile.min_salary:,.0f} {profile.currency})",
+                f"Offered salary ({salary_raw}) is below profile minimum ({soft_floor:,.0f} {profile.currency})",
                 {"stated_min": min_val, "stated_max": max_val, "profile_min": profile.min_salary},
             )
 
@@ -118,7 +134,7 @@ def check_salary_filter(job: dict[str, Any], profile: JobProfile) -> FilterResul
 
 
 def check_location_filter(job: dict[str, Any], profile: JobProfile) -> FilterResult:
-    """Validate location and workplace policy (Remote, Hybrid, On-site)."""
+    """Validate location and workplace policy (Remote, Hybrid, On-site) with Indian city normalization."""
     job_loc = str(job.get("location") or "").lower()
     job_title = str(job.get("title") or "").lower()
     job_desc = str(job.get("description") or "").lower()
@@ -131,8 +147,6 @@ def check_location_filter(job: dict[str, Any], profile: JobProfile) -> FilterRes
         or bool(job.get("remote"))
     )
 
-    is_hybrid_job = "hybrid" in job_loc or "hybrid" in job_desc[:200]
-
     # If profile requires Remote only
     if profile.location_type.lower() == "remote" and not is_remote_job:
         return FilterResult(
@@ -142,15 +156,29 @@ def check_location_filter(job: dict[str, Any], profile: JobProfile) -> FilterRes
             {"job_location": job.get("location"), "required": "Remote"},
         )
 
-    # If preferred locations specified, check overlap
+    # If preferred locations specified, check overlap with synonyms
     pref_locs = [loc.lower() for loc in profile.preferred_locations if loc]
     if pref_locs and "any" not in pref_locs:
-        # Remote jobs always pass location preference if remote_ok / any location allowed
+        # If job is in India and candidate accepts India / Remote
+        if "india" in job_loc and ("india" in pref_locs or is_remote_job):
+            return FilterResult(True, "location", "Matched India location", {"location": job.get("location")})
+
         if is_remote_job and any("remote" in l for l in pref_locs):
             return FilterResult(True, "location", "Matched preferred remote work", {"location": "Remote"})
 
-        matches_location = any(pref in job_loc for pref in pref_locs)
+        # Expand preferred locations with synonyms
+        expanded_prefs = set()
+        for loc in pref_locs:
+            expanded_prefs.add(loc)
+            if loc in CITY_SYNONYMS:
+                expanded_prefs.update(CITY_SYNONYMS[loc])
+
+        matches_location = any(pref in job_loc for pref in expanded_prefs)
         if not matches_location and not is_remote_job:
+            # If job location is blank, pass to avoid dropping unparsed locations
+            if not job_loc or job_loc == "unknown":
+                return FilterResult(True, "location", "Location unstated (passed to scoring)", {})
+
             return FilterResult(
                 False,
                 "location",

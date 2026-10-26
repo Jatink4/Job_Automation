@@ -62,6 +62,9 @@ LINKEDIN_PASSWORD: str = (os.getenv("LINKEDIN_PASSWORD") or "").strip()
 NAUKRI_EMAIL: str = (os.getenv("NAUKRI_EMAIL") or "").strip()
 NAUKRI_PASSWORD: str = (os.getenv("NAUKRI_PASSWORD") or "").strip()
 
+GMAIL_EMAIL: str = (os.getenv("GMAIL_EMAIL") or "").strip()
+GMAIL_PASSWORD: str = (os.getenv("GMAIL_PASSWORD") or "").strip()
+
 
 # ──────────────────────────────────────────────────────────────────────
 #  Bot behaviour defaults (overridable by .env)

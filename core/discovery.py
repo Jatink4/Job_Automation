@@ -200,4 +200,21 @@ class JobDiscoveryEngine:
             except Exception as exc:
                 logger.error("Naukri discovery error for profile '{}': {}", profile.name, exc)
 
+        # 3. Open Web / Internet Discovery (Indeed India & Tech Aggregators)
+        if sites.lower() in ("web", "internet", "all"):
+            try:
+                from scrapers.indeed import IndeedScraper
+                indeed_scraper = IndeedScraper(browser_manager, profile_resume)
+                IndeedScraper.MAX_TOTAL_JOBS = limit_per_search  # type: ignore[attr-defined]
+
+                raw_jobs = await indeed_scraper.scrape()
+                logger.info("Found {} raw Web/Internet listings for '{}'", len(raw_jobs), profile.name)
+
+                for raw in raw_jobs:
+                    res = await self.process_job(raw, profile, resume)
+                    discovered_jobs.append(res)
+                    await asyncio.sleep(0.2)
+            except Exception as exc:
+                logger.error("Web discovery error for profile '{}': {}", profile.name, exc)
+
         return discovered_jobs

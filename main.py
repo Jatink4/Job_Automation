@@ -88,9 +88,9 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--sites",
-        choices=["linkedin", "naukri", "all"],
-        default="linkedin",
-        help="Job listing sources to search (default: linkedin)",
+        choices=["linkedin", "naukri", "web", "all"],
+        default="all",
+        help="Job listing sources to search (default: all — LinkedIn, Naukri, and Web)",
     )
     parser.add_argument(
         "--limit",

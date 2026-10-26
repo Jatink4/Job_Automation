@@ -255,3 +255,41 @@ async def take_screenshot(page: Page, job_id: str) -> str:
     await page.screenshot(path=str(path), full_page=True)
     logger.info("Screenshot saved → {}", path)
     return str(path)
+
+
+async def ensure_google_login(page: Page) -> bool:
+    """
+    Assists in signing in to Google with the candidate's Gmail account.
+    Session and cookies are preserved permanently in browser_data.
+    """
+    if not config.GMAIL_EMAIL:
+        return False
+
+    try:
+        await page.goto("https://accounts.google.com", wait_until="domcontentloaded", timeout=30_000)
+        await human_delay(1.5, 3.0)
+
+        # Check if already authenticated
+        if "myaccount.google.com" in page.url or (await page.locator("a[aria-label*='Google Account']").count()) > 0:
+            logger.info("✓ Google session active for {}", config.GMAIL_EMAIL)
+            return True
+
+        email_input = page.locator("input[type='email']")
+        if await email_input.count() > 0:
+            logger.info("Entering Google account: {}", config.GMAIL_EMAIL)
+            await email_input.first.fill(config.GMAIL_EMAIL)
+            await page.keyboard.press("Enter")
+            await human_delay(2.5, 4.0)
+
+        pwd_input = page.locator("input[type='password']")
+        if await pwd_input.count() > 0 and config.GMAIL_PASSWORD:
+            logger.info("Entering password for Google account...")
+            await pwd_input.first.fill(config.GMAIL_PASSWORD)
+            await page.keyboard.press("Enter")
+            await human_delay(3.0, 5.0)
+
+        logger.info("Google authentication sequence executed.")
+        return True
+    except Exception as exc:
+        logger.debug("Google login automation helper notice: {}", exc)
+        return False
