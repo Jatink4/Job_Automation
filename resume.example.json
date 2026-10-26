@@ -1,0 +1,113 @@
+{
+  "personal": {
+    "name": "Your Name",
+    "email": "you@example.com",
+    "phone": "+1-555-0100",
+    "location": "City, Country",
+    "linkedin_url": "https://linkedin.com/in/your-profile",
+    "portfolio_url": "https://your-portfolio.example.com",
+    "github_url": "https://github.com/your-username"
+  },
+  "resume_pdf_path": "./public/resume.pdf",
+  "summary": "Software engineer with experience in Python, web development, and machine learning. Replace this with your own professional summary.",
+  "experience": [
+    {
+      "company": "Example Corp",
+      "role": "Software Engineer Intern",
+      "start_date": "2024-06",
+      "end_date": "2024-12",
+      "bullets": [
+        "Built REST APIs with FastAPI and integrated them with a React frontend",
+        "Wrote unit tests and improved CI pipeline reliability"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Sample ML Project",
+      "year": "2024",
+      "tech": ["Python", "Scikit-learn", "FastAPI"],
+      "bullets": [
+        "Trained a classification model and deployed it behind a simple API",
+        "Documented setup steps and evaluation metrics"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "Example University",
+      "degree": "B.Tech",
+      "field": "Computer Science",
+      "start_date": "2020-08",
+      "end_date": "2024-05",
+      "cgpa": "8.0/10",
+      "year": 2024
+    }
+  ],
+  "skills": [
+    "Python",
+    "JavaScript",
+    "TypeScript",
+    "React",
+    "FastAPI",
+    "Node.js",
+    "SQL",
+    "Git",
+    "Docker"
+  ],
+  "certifications": [],
+  "job_preferences": {
+    "titles": [
+      "Software Engineer",
+      "Full Stack Developer",
+      "Python Developer",
+      "Backend Developer",
+      "Junior Software Engineer"
+    ],
+    "locations": [
+      "Bangalore",
+      "Remote"
+    ],
+    "remote_only": false,
+    "hybrid_only": false,
+    "remote_ok": true,
+    "min_salary": null,
+    "blacklist_companies": [],
+    "max_experience_years": 2,
+    "minimum_score": 60,
+    "prefer_main_roles": true,
+    "blacklist_keywords": [
+      "unpaid internship",
+      "commission only",
+      "10+ years",
+      "senior",
+      "director",
+      "manager"
+    ],
+    "whitelist_keywords": [
+      "software",
+      "python",
+      "full stack",
+      "junior",
+      "entry level",
+      "intern",
+      "graduate"
+    ],
+    "min_ai_match_score": 65
+  },
+  "screening_answers": {
+    "years_of_experience": "1",
+    "professional_experience_years": "0",
+    "internship_experience": "Yes",
+    "internship_months": "6",
+    "current_ctc": "0",
+    "expected_ctc": "6",
+    "notice_period": "Immediate",
+    "willing_to_relocate": true,
+    "work_authorization": "Yes",
+    "sponsorship_required": false,
+    "highest_education": "B.Tech Computer Science",
+    "cgpa": "8.0",
+    "graduation_year": "2024"
+  }
+}

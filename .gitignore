@@ -1,0 +1,67 @@
+# ==========================================
+# Environments & Secrets (NEVER COMMIT)
+# ==========================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ==========================================
+# Personal Profile, Resumes & Credentials
+# ==========================================
+resume.json
+profiles.json
+*.pdf
+public/*.pdf
+Resume/
+resume/
+
+# ==========================================
+# Databases & Personal Application History
+# ==========================================
+*.db
+*.sqlite
+*.sqlite3
+job_bot.db
+
+# ==========================================
+# Browser Sessions, Profiles & Cookies
+# ==========================================
+browser_data/
+cookies.json
+storage_state.json
+*.session
+session/
+screenshots/
+results/
+
+# ==========================================
+# Python Environments & Caches
+# ==========================================
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+bot.log
+
+# ==========================================
+# Testing & Tooling
+# ==========================================
+.pytest_cache/
+.coverage
+htmlcov/
+.streamlit/secrets.toml
+
+# ==========================================
+# Operating System & IDE Files
+# ==========================================
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
