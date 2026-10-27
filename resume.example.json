@@ -26,7 +26,11 @@
     {
       "name": "Sample ML Project",
       "year": "2024",
-      "tech": ["Python", "Scikit-learn", "FastAPI"],
+      "tech": [
+        "Python",
+        "Scikit-learn",
+        "FastAPI"
+      ],
       "bullets": [
         "Trained a classification model and deployed it behind a simple API",
         "Documented setup steps and evaluation metrics"
@@ -46,14 +50,24 @@
   ],
   "skills": [
     "Python",
+    "C++",
     "JavaScript",
-    "TypeScript",
+    "React.js",
     "React",
-    "FastAPI",
     "Node.js",
+    "Express.js",
+    "MongoDB",
+    "REST APIs",
     "SQL",
+    "FastAPI",
+    "RAG",
+    "LLM",
+    "AI Agents",
     "Git",
-    "Docker"
+    "GitHub",
+    "Pandas",
+    "NumPy",
+    "Power BI"
   ],
   "certifications": [],
   "job_preferences": {

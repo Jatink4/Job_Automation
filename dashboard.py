@@ -282,7 +282,7 @@ with tab_review:
 
                         missing_skills = breakdown.get("missing_skills", [])
                         if missing_skills:
-                            st.markdown(f"**Missing Skills:** {', '.join([f'`{s}`' for s in missing_skills])}")
+                            st.markdown(f"**Target Skills Unmentioned in Posting:** {', '.join([f'`{s}`' for s in missing_skills])}")
 
                         pros = breakdown.get("pros", [])
                         if pros:

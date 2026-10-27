@@ -219,14 +219,15 @@ def check_eligibility_filter(job: dict[str, Any], profile: JobProfile) -> Filter
 
 def check_skills_filter(job: dict[str, Any], profile: JobProfile) -> FilterResult:
     """Ensure candidate has necessary critical skills and profile skills align."""
-    req_skills = [s.lower() for s in profile.required_skills if s]
-    if not req_skills:
+    from core.scorer import skill_matches
+
+    if not profile.required_skills:
         return FilterResult(True, "skills", "No mandatory skills configured in profile", {})
 
     desc = (str(job.get("description") or "") + " " + str(job.get("title") or "")).lower()
 
-    # Find required skills mentioned in the job description
-    demanded_skills = [s for s in req_skills if re.search(r"\b" + re.escape(s) + r"\b", desc)]
+    # Find required skills mentioned in the job description using robust alias matching
+    demanded_skills = [s for s in profile.required_skills if skill_matches(s, desc)]
 
     # If the job explicitly targets this profile's domain, at least 1 primary skill must match
     title_l = str(job.get("title") or "").lower()

@@ -48,6 +48,63 @@ class ScoreBreakdown:
 
 
 # ──────────────────────────────────────────────────────────────────────
+#  Skill Aliases & Robust Text Matching
+# ──────────────────────────────────────────────────────────────────────
+SKILL_ALIASES: dict[str, list[str]] = {
+    "c++": [r"(?<!\w)c\+\+(?!\w)", r"\bcpp\b", r"(?<!\w)c/c\+\+(?!\w)", r"\bc\s+plus\s+plus\b"],
+    "c": [r"(?<!\w)c(?!\w)"],
+    "react.js": [r"\breact(?:\.js|js)?\b"],
+    "react": [r"\breact(?:\.js|js)?\b"],
+    "node.js": [r"\bnode(?:\.js|js)?\b"],
+    "node": [r"\bnode(?:\.js|js)?\b"],
+    "express.js": [r"\bexpress(?:\.js|js)?\b"],
+    "express": [r"\bexpress(?:\.js|js)?\b"],
+    "rest apis": [r"\brest(?:ful)?(?:\s+apis?|\s+services?|\s+architecture)?\b", r"\brest\b"],
+    "rest api": [r"\brest(?:ful)?(?:\s+apis?|\s+services?|\s+architecture)?\b", r"\brest\b"],
+    "mongodb": [r"\bmongo(?:db)?\b"],
+    "sql": [r"\bsql\b", r"\bmysql\b", r"\bpostgresql\b", r"\bpostgres\b", r"\bsqlite\b"],
+    "fastapi": [r"\bfastapi\b"],
+    "rag": [r"\brag\b", r"\bretrieval[\s-]augmented\s+generation\b"],
+    "retrieval-augmented generation": [r"\brag\b", r"\bretrieval[\s-]augmented\s+generation\b"],
+    "llm": [r"\bllms?\b", r"\blarge\s+language\s+models?\b"],
+    "ai agents": [r"\bai\s+agents?\b", r"\bagentic(?:\s+ai)?\b"],
+    "power bi": [r"\bpower\s*bi\b"],
+    "pandas": [r"\bpandas\b"],
+    "numpy": [r"\bnumpy\b"],
+    "data cleaning": [r"\bdata\s+cleaning\b", r"\bdata\s+preprocessing\b"],
+    "exploratory data analysis (eda)": [r"\beda\b", r"\bexploratory\s+data\s+analysis\b"],
+    "eda": [r"\beda\b", r"\bexploratory\s+data\s+analysis\b"],
+    "feature engineering": [r"\bfeature\s+engineering\b"],
+    "statistical analysis": [r"\bstat(?:istical|istics)?\s+analysis\b", r"\bstatistics\b"],
+    "mece": [r"\bmece\b"],
+    "tam/sam/som": [r"\btam\b", r"\bmarket\s+sizing\b"],
+    "gtm strategy": [r"\bgtm\b", r"\bgo[\s-]to[\s-]market\b"],
+    "market research": [r"\bmarket\s+research\b"],
+    "financial modeling": [r"\bfinancial\s+model(?:ing)?\b"],
+    "root cause analysis": [r"\broot[\s-]cause\b", r"\brca\b"],
+    "kpi reporting": [r"\bkpis?\b", r"\bkpi\s+reporting\b"],
+    "dashboard development": [r"\bdashboards?\b", r"\bdashboard\s+development\b"],
+    "oop": [r"\boop\b", r"\bobject[\s-]oriented\b"],
+    "object-oriented programming (oop)": [r"\boop\b", r"\bobject[\s-]oriented\b"],
+    "dsa": [r"\bdsa\b", r"\bdata\s+structures\b"],
+    "data structures & algorithms": [r"\bdsa\b", r"\bdata\s+structures\b"],
+    "dbms": [r"\bdbms\b", r"\bdatabase\s+management\b"],
+    "operating systems": [r"\boperating\s+systems?\b"],
+    "computer networks": [r"\bcomputer\s+networks?\b", r"\bnetworking\b"],
+}
+
+
+def skill_matches(skill: str, text: str) -> bool:
+    """Check if a skill (or its common abbreviations/variants) appears in text."""
+    s_clean = skill.strip().lower()
+    if s_clean in SKILL_ALIASES:
+        return any(re.search(pat, text, re.IGNORECASE) for pat in SKILL_ALIASES[s_clean])
+    escaped = re.escape(s_clean)
+    pat = r"(?<!\w)" + escaped + r"(?!\w)"
+    return bool(re.search(pat, text, re.IGNORECASE))
+
+
+# ──────────────────────────────────────────────────────────────────────
 #  1. Free Local Deterministic Matcher (Zero API keys needed)
 # ──────────────────────────────────────────────────────────────────────
 def score_deterministic(
@@ -70,11 +127,10 @@ def score_deterministic(
     matched_skills: list[str] = []
     missing_skills: list[str] = []
 
-    # Check required skills
+    # Check required skills against posting text
     req_hits = 0
     for s in profile_required:
-        pattern = r"\b" + re.escape(s.lower()) + r"\b"
-        if re.search(pattern, desc):
+        if skill_matches(s, desc):
             matched_skills.append(s)
             req_hits += 1
         else:
@@ -83,9 +139,8 @@ def score_deterministic(
     # Check candidate resume skills that match job description
     candidate_hits = 0
     for s in candidate_skills:
-        if s not in matched_skills:
-            pattern = r"\b" + re.escape(s.lower()) + r"\b"
-            if re.search(pattern, desc):
+        if not any(skill_matches(s, m) for m in matched_skills):
+            if skill_matches(s, desc):
                 matched_skills.append(s)
                 candidate_hits += 1
 
@@ -129,7 +184,7 @@ def score_deterministic(
 
     proj_hits = 0
     for pt in project_techs:
-        if re.search(r"\b" + re.escape(pt.lower()) + r"\b", desc):
+        if skill_matches(pt, desc):
             proj_hits += 1
 
     domain_score = min(20, 10 + min(proj_hits * 3, 10))
@@ -151,13 +206,13 @@ def score_deterministic(
     if matched_target_title:
         pros.append(f"Title matches target profile '{profile.name}'")
     if matched_skills:
-        pros.append(f"Matching skills: {', '.join(matched_skills[:5])}")
+        pros.append(f"Candidate matched skills: {', '.join(matched_skills[:5])}")
     if "remote" in job_loc:
         pros.append("Remote-friendly position")
 
-    if missing_skills:
+    if missing_skills and skills_score < 20:
         cons.append(f"Job posting does not explicitly cite: {', '.join(missing_skills[:4])}")
-    if skills_score < 20:
+    elif skills_score < 20:
         cons.append("Limited direct skill overlap found in posting text")
 
     reasoning = (
